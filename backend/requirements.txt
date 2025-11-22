@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+firebase-admin
+earthengine-api
+geemap
+rasterio
+numpy
+scipy
+plotly
+matplotlib
+fpdf
+pydantic
