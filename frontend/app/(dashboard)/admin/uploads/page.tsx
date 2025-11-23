@@ -1,187 +1,133 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { FileUpload } from "@/components/file-upload"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { FileText, Image, FileSpreadsheet, Download, Trash2, Eye } from "lucide-react"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
-// Mock data for uploaded files
-const mockUploadedFiles = [
-    {
-        id: 1,
-        name: "satellite_image_zone_4.jpg",
-        type: "image/jpeg",
-        size: 2500000,
-        uploadedBy: "Officer John Doe",
-        uploadedAt: "2024-01-20 14:30",
-        category: "Satellite Imagery",
-    },
-    {
-        id: 2,
-        name: "mining_report_jan_2024.pdf",
-        type: "application/pdf",
-        size: 1200000,
-        uploadedBy: "Admin Sarah Smith",
-        uploadedAt: "2024-01-19 10:15",
-        category: "Reports",
-    },
-    {
-        id: 3,
-        name: "site_inspection_data.csv",
-        type: "text/csv",
-        size: 450000,
-        uploadedBy: "Officer Mike Johnson",
-        uploadedAt: "2024-01-18 16:45",
-        category: "Data Files",
-    },
-]
+export default function UploadPage() {
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [status, setStatus] = useState("idle"); // idle, processing, success, error
+  const router = useRouter();
 
-export default function UploadsPage() {
-    const [files, setFiles] = useState<File[]>([])
-
-    const handleFilesSelected = (selectedFiles: File[]) => {
-        setFiles(selectedFiles)
-        console.log("Files selected:", selectedFiles)
+  // 1. Handle File Selection
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
     }
+  };
 
-    const handleSubmit = (files: File[]) => {
-        console.log("Submitting files:", files)
-        alert(`✅ ${files.length} file(s) submitted successfully!`)
-        // Here you would upload files to your backend API
+  // 2. Send File to Python Backend
+  const handleUpload = async () => {
+    if (!file) return;
+
+    setUploading(true);
+    setStatus("processing");
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      // 👉 CONNECTING TO YOUR FASTAPI BACKEND HERE
+      const response = await fetch("http://127.0.0.1:8000/analyze-mine", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const data = await response.blob();
+      console.log("Analysis complete:", data);
+      
+      setStatus("success");
+      
+      // Redirect to the dashboard to see the results
+      setTimeout(() => {
+        router.push("/officer"); // Redirects to the Officer Dashboard
+      }, 2000);
+
+    } catch (error) {
+      console.error("Error uploading:", error);
+      setStatus("error");
+    } finally {
+      setUploading(false);
     }
+  };
 
-    const handleView = (file: File) => {
-        console.log("Viewing file:", file.name)
-        // Open file in new window or show preview modal
-        const url = URL.createObjectURL(file)
-        window.open(url, '_blank')
-    }
-
-    const handleDelete = (fileId: string) => {
-        console.log("Deleting file:", fileId)
-        alert(`🗑️ File deleted!`)
-        // Here you would delete the file
-    }
-
-    const formatFileSize = (bytes: number): string => {
-        if (bytes === 0) return "0 Bytes"
-        const k = 1024
-        const sizes = ["Bytes", "KB", "MB", "GB"]
-        const i = Math.floor(Math.log(bytes) / Math.log(k))
-        return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i]
-    }
-
-    const getFileIcon = (type: string) => {
-        if (type.includes("image")) return Image
-        if (type.includes("spreadsheet") || type.includes("csv")) return FileSpreadsheet
-        return FileText
-    }
-
-    return (
-        <div className="p-6 space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">File Uploads</h1>
-                    <p className="text-muted-foreground">
-                        Upload and manage satellite imagery, reports, and documents
-                    </p>
-                </div>
-                <Badge variant="outline" className="text-xs">
-                    {mockUploadedFiles.length} files uploaded
-                </Badge>
-            </div>
-
-            {/* Upload Section */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Upload New Files</CardTitle>
-                    <CardDescription>
-                        Drag and drop files or click to browse. Supports all file formats up to 100MB
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <FileUpload
-                        onFilesSelected={handleFilesSelected}
-                        onSubmit={handleSubmit}
-                        onView={handleView}
-                        onDelete={handleDelete}
-                        maxSize={100}
-                        multiple={true}
-                    />
-                </CardContent>
-            </Card>
-
-            {/* Recently Uploaded Files */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Recently Uploaded Files</CardTitle>
-                    <CardDescription>View and manage all uploaded files</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>File Name</TableHead>
-                                <TableHead>Type</TableHead>
-                                <TableHead>Size</TableHead>
-                                <TableHead>Uploaded By</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Category</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {mockUploadedFiles.map((file) => {
-                                const FileIcon = getFileIcon(file.type)
-                                return (
-                                    <TableRow key={file.id}>
-                                        <TableCell className="font-medium">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                    <FileIcon className="w-4 h-4 text-emerald-500" />
-                                                </div>
-                                                <span className="truncate max-w-xs">{file.name}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="secondary" className="text-xs">
-                                                {file.type.split("/")[1].toUpperCase()}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-slate-400">{formatFileSize(file.size)}</TableCell>
-                                        <TableCell className="text-slate-400">{file.uploadedBy}</TableCell>
-                                        <TableCell className="text-slate-400">{file.uploadedAt}</TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline">{file.category}</Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex items-center justify-end gap-1">
-                                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                                                    <Eye className="h-4 w-4" />
-                                                </Button>
-                                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                                                    <Download className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    className="h-8 w-8 p-0 text-rose-400 hover:text-rose-300"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                )
-                            })}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+  return (
+    <div className="p-8 max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Upload Mining Lease Document</h1>
+      
+      <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:bg-gray-50 transition-colors">
+        <div className="space-y-4">
+          <div className="flex justify-center">
+            {/* Icon */}
+            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+          </div>
+          
+          <div className="text-gray-600">
+            <label className="cursor-pointer">
+              <span className="text-blue-600 hover:underline font-medium">Click to upload</span>
+              <span className="mx-1">or drag and drop</span>
+              <input 
+                type="file" 
+                className="hidden" 
+                accept=".pdf,.png,.jpg,.jpeg"
+                onChange={handleFileChange}
+              />
+            </label>
+            <p className="text-xs text-gray-500 mt-2">PDF, PNG or JPG (MAX. 10MB)</p>
+          </div>
         </div>
-    )
+      </div>
+
+      {/* Status Indicator */}
+      {file && (
+        <div className="mt-6 bg-white p-4 rounded-lg border shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-100 rounded text-blue-600">
+                📄
+              </div>
+              <div>
+                <p className="font-medium text-sm">{file.name}</p>
+                <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+              </div>
+            </div>
+            
+            {status === 'idle' && (
+              <button
+                onClick={handleUpload}
+                disabled={uploading}
+                className="bg-black text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+              >
+                {uploading ? "Processing..." : "Run Analysis"}
+              </button>
+            )}
+
+            {status === 'processing' && (
+              <span className="text-blue-600 text-sm font-medium animate-pulse">
+                🛰️ Connecting to Satellite...
+              </span>
+            )}
+
+            {status === 'success' && (
+              <span className="text-green-600 text-sm font-medium">
+                ✅ Analysis Complete! Redirecting...
+              </span>
+            )}
+            
+            {status === 'error' && (
+              <span className="text-red-600 text-sm font-medium">
+                ❌ Server Error. Check Backend Terminal.
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

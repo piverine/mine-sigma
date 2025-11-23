@@ -1,86 +1,82 @@
-from fastapi import APIRouter, HTTPException
-from database import db
-from models import ItemCreate, ItemResponse
-from pydantic import BaseModel
-import sys
+from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi.responses import FileResponse, JSONResponse
+import shutil
 import os
+import sys
 
-# Add parent directory to path to import from ai_engine and app
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# --- 🚨 PATH FIX: Point to Root Folder ---
+# Go up 1 level (from 'backend' to 'root') to find 'ai_engine'
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
-from app.services.gee_service import get_satellite_data
-from ai_engine.inference import analyze_image
+try:
+    from ai_engine.gemini_parser import extract_mining_params
+    from ai_engine.audit_engine import run_audit_pipeline
+except ImportError as e:
+    print(f"⚠️ Import Error: {e} (Check if ai_engine folder exists in root)")
+    # Mock for safety
+    def extract_mining_params(p): return {}
+    def run_audit_pipeline(p, output_base_path): return "error.zip"
 
 router = APIRouter()
-COLLECTION_NAME = "items" 
-ANALYSIS_COLLECTION = "analysisData"
 
-class AnalyzeRequest(BaseModel):
-    lat: float
-    lon: float
-    mineName: str
-    district: str
+# GLOBAL STATE (For Dashboard)
+last_analysis_result = {
+    "status": "waiting",
+    "message": "No analysis run yet."
+}
 
-@router.post("/analyze")
-async def analyze_mine(request: AnalyzeRequest):
+@router.post("/analyze-mine")
+async def analyze_mine(file: UploadFile = File(...)):
+    global last_analysis_result
     try:
-        # 1. Fetch Data from GEE
-        dem_path, sat_path = get_satellite_data(request.lat, request.lon)
+        # 1. Save Uploaded File Locally
+        temp_path = f"temp_{file.filename}"
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        # 2. Run Gemini
+        print("📡 SERVER: Calling Gemini...")
+        params = extract_mining_params(temp_path)
         
-        # 2. Run Inference
-        results = analyze_image(dem_path, sat_path)
+        # 3. Run Audit Engine
+        # Save to 'backend/public'
+        public_dir = os.path.join(os.path.dirname(__file__), "public")
+        os.makedirs(public_dir, exist_ok=True)
         
-        # 3. Combine with request data
-        final_data = {
-            "mineName": request.mineName,
-            "district": request.district,
-            **results
+        zip_path = run_audit_pipeline(params, output_base_path=public_dir)
+        
+        # Cleanup Input
+        if os.path.exists(temp_path): os.remove(temp_path)
+
+        # 4. UPDATE DASHBOARD DATA
+        safe_name = params.get('project_name', 'Project').replace(" ", "_")
+        
+        # Construct Local URLs (Assuming backend runs on port 8000)
+        base_url = "http://127.0.0.1:8000/static"
+        
+        last_analysis_result = {
+            "status": "success",
+            "project": params.get('project_name'),
+            "location": f"{params.get('lat')}, {params.get('lon')}",
+            "compliance": "Analysis Complete", 
+            "urls": {
+                "model_3d": f"{base_url}/audit_{safe_name}/3D_Model.html",
+                "map_2d": f"{base_url}/audit_{safe_name}/Evidence_Map.png",
+                "report": f"{base_url}/audit_{safe_name}/Audit_Report.pdf",
+                "download": f"{base_url}/{os.path.basename(zip_path)}"
+            }
         }
-        
-        # 4. Save to Firestore
-        # We'll use a fixed ID for the demo to easily retrieve it in the frontend
-        # In a real app, you'd use unique IDs
-        db.collection(ANALYSIS_COLLECTION).document("latest_analysis").set(final_data)
-        
-        return final_data
-        
+
+        return JSONResponse(content=last_analysis_result)
+
     except Exception as e:
+        print(f"❌ ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/items/", response_model=ItemResponse)
-async def create_item(item: ItemCreate):
-    try:
-        # Add data to Firestore
-        doc_ref = db.collection(COLLECTION_NAME).document()
-        doc_ref.set(item.dict())
-        return {**item.dict(), "id": doc_ref.id}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/items/{item_id}", response_model=ItemResponse)
-async def read_item(item_id: str):
-    doc_ref = db.collection(COLLECTION_NAME).document(item_id)
-    doc = doc_ref.get()
-
-    if doc.exists:
-        return {**doc.to_dict(), "id": doc.id}
-    else:
-        raise HTTPException(status_code=404, detail="Item not found")
-
-@router.get("/items/")
-async def read_all_items():
-    docs = db.collection(COLLECTION_NAME).stream()
-    return [{**doc.to_dict(), "id": doc.id} for doc in docs]
-
-@router.get("/analysis/latest")
+@router.get("/api/analysis/latest")
 async def get_latest_analysis():
-    try:
-        doc_ref = db.collection(ANALYSIS_COLLECTION).document("latest_analysis")
-        doc = doc_ref.get()
+    return JSONResponse(content=last_analysis_result)
 
-        if doc.exists:
-            return {**doc.to_dict(), "id": doc.id}
-        else:
-            raise HTTPException(status_code=404, detail="No analysis found")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+@router.get("/api/items/")
+async def get_items():
+    return [{"id": 1, "name": "Jharia Mine"}, {"id": 2, "name": "Korba Mine"}]

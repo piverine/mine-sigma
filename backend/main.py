@@ -1,11 +1,17 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from routers import router
+from dotenv import load_dotenv
+import os
+
+# 🚨 CHANGE: Direct import because files are in the same folder
+from routers import router 
+
+load_dotenv()
 
 app = FastAPI()
 
-# CORS Configuration
-# Allow your Next.js frontend (usually running on port 3000)
+# 1. CORS (Allow Frontend)
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -19,8 +25,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router, prefix="/api")
+# 2. MOUNT PUBLIC FOLDER (For serving Zips/PDFs)
+# Since main.py is in 'backend/', we create 'backend/public'
+public_path = os.path.join(os.path.dirname(__file__), "public")
+os.makedirs(public_path, exist_ok=True)
+
+app.mount("/static", StaticFiles(directory=public_path), name="static")
+
+# 3. INCLUDE ROUTER
+app.include_router(router)
 
 @app.get("/")
 def read_root():
-    return {"message": "FastAPI backend is running"}
+    return {"message": "Satellite Audit Backend Online"}
