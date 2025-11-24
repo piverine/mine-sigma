@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { cn } from "@/lib/utils"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Layers, Play, Loader2, ChevronRight, Download, Eye, Mountain, TrendingDown, ExternalLink } from "lucide-react"
+import { Calendar, Layers, Play, Loader2, ChevronRight, Download, Eye, Mountain, TrendingDown, ExternalLink, Map, Maximize2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ export function AuditOfficerDashboard() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [reportDialogOpen, setReportDialogOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<"map" | "3d" | "2d">("map")
   const [layers, setLayers] = useState({
     optical: true,
     sar: false,
@@ -76,155 +78,132 @@ export function AuditOfficerDashboard() {
 
   return (
     <div className="h-full flex flex-col lg:flex-row">
-      {/* Left Control Panel */}
-      <div className="w-full lg:w-80 bg-slate-900 border-b lg:border-r border-slate-800 p-4 space-y-4 overflow-auto">
-        <div>
-          <h2 className="text-xl font-bold mb-1">Audit Cockpit</h2>
-          <p className="text-sm text-muted-foreground">Analysis and monitoring tools</p>
+
+      {/* Center Viewer - Map and 3D Satellite Data */}
+      <div className="flex-1 relative bg-slate-950 flex flex-col w-full">
+        {/* Tab Navigation */}
+        <div className="w-full bg-slate-900 border-b border-slate-800 flex">
+          <button
+            onClick={() => setActiveTab("map")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all border-b-2 border-transparent",
+              activeTab === "map"
+                ? "border-emerald-500 text-emerald-500"
+                : "text-slate-400 hover:text-slate-300"
+            )}
+          >
+            <Map className="h-4 w-4" />
+            Map View
+          </button>
+          <button
+            onClick={() => setActiveTab("3d")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all border-b-2 border-transparent",
+              activeTab === "3d"
+                ? "border-emerald-500 text-emerald-500"
+                : "text-slate-400 hover:text-slate-300"
+            )}
+          >
+            <Mountain className="h-4 w-4" />
+            3D Satellite Data
+          </button>
+          <button
+            onClick={() => setActiveTab("2d")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all border-b-2 border-transparent",
+              activeTab === "2d"
+                ? "border-emerald-500 text-emerald-500"
+                : "text-slate-400 hover:text-slate-300"
+            )}
+          >
+            <Eye className="h-4 w-4" />
+            2D Visualization
+          </button>
         </div>
 
-        {/* Site Selection */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Selected Site</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="text-lg font-semibold">{analysisData.mineName}</div>
-            <Badge variant="outline">{analysisData.district}</Badge>
-          </CardContent>
-        </Card>
-
-        {/* Date Range */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Date Range
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">From</Label>
-              <div className="text-sm bg-slate-950 p-2 rounded border border-slate-800">2024-01-01</div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">To</Label>
-              <div className="text-sm bg-slate-950 p-2 rounded border border-slate-800">2024-01-15</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Layer Toggles */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Layers className="h-4 w-4" />
-              Map Layers
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="optical" className="text-sm">
-                Optical Imagery
-              </Label>
-              <Switch
-                id="optical"
-                checked={layers.optical}
-                onCheckedChange={(checked) => setLayers({ ...layers, optical: checked })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="sar" className="text-sm">
-                SAR Data
-              </Label>
-              <Switch
-                id="sar"
-                checked={layers.sar}
-                onCheckedChange={(checked) => setLayers({ ...layers, sar: checked })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="ndvi" className="text-sm">
-                NDVI Analysis
-              </Label>
-              <Switch
-                id="ndvi"
-                checked={layers.ndvi}
-                onCheckedChange={(checked) => setLayers({ ...layers, ndvi: checked })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="lease" className="text-sm">
-                Lease Boundary
-              </Label>
-              <Switch
-                id="lease"
-                checked={layers.leaseBoundary}
-                onCheckedChange={(checked) => setLayers({ ...layers, leaseBoundary: checked })}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* AI Detection Button */}
-        <Button className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={handleAnalysis} disabled={isAnalyzing}>
-          {isAnalyzing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Analyzing...
-            </>
-          ) : (
-            <>
-              <Play className="mr-2 h-4 w-4" />
-              Run AI Detection
-            </>
+        {/* Tab Content */}
+        <div className="flex-1 relative">
+          {/* Map View */}
+          {activeTab === "map" && (
+            <iframe
+              src="http://localhost:3000/map"
+              className="w-full h-full border-0"
+              title="Cesium Map View"
+            />
           )}
-        </Button>
-      </div>
 
-      {/* Center Map Viewer */}
-      <div className="flex-1 relative bg-slate-950">
-        {/* Map Placeholder */}
-        <div className="w-full h-full relative">
-          <div
-            className="absolute inset-0 opacity-20"
-            style={{
-              backgroundImage: `
-                linear-gradient(rgba(16, 185, 129, 0.1) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(16, 185, 129, 0.1) 1px, transparent 1px)
-              `,
-              backgroundSize: "50px 50px",
-            }}
-          />
-
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center space-y-4 p-8">
-              <Mountain className="h-16 w-16 mx-auto text-emerald-500/30" />
-              <div>
-                <h3 className="text-xl font-semibold text-slate-400">3D Globe Viewer</h3>
-                <p className="text-sm text-slate-500 mt-2">Cesium-powered satellite imagery visualization</p>
-              </div>
-              {layers.leaseBoundary && (
-                <div className="inline-block">
-                  <Badge variant="outline" className="border-emerald-500/50 text-emerald-500">
-                    Lease Boundary Active
-                  </Badge>
+          {/* 3D Satellite Data */}
+          {activeTab === "3d" && (
+            analysisResult?.urls?.model_3d ? (
+              <iframe
+                src={analysisResult.urls.model_3d}
+                className="w-full h-full border-0"
+                title="3D Satellite Model"
+              />
+            ) : (
+              <div className="w-full h-full relative">
+                <div
+                  className="absolute inset-0 opacity-20"
+                  style={{
+                    backgroundImage: `
+                      linear-gradient(rgba(16, 185, 129, 0.1) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(16, 185, 129, 0.1) 1px, transparent 1px)
+                    `,
+                    backgroundSize: "50px 50px",
+                  }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center space-y-4 p-8">
+                    <Mountain className="h-16 w-16 mx-auto text-emerald-500/30" />
+                    <div>
+                      <h3 className="text-xl font-semibold text-slate-400">3D Satellite Data</h3>
+                      <p className="text-sm text-slate-500 mt-2">Interactive 3D visualization of terrain and mining activity</p>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            )
+          )}
 
-          {/* Overlay Controls */}
-          <div className="absolute top-4 right-4 flex gap-2">
-            <Button size="icon" variant="secondary" className="bg-slate-900/80 backdrop-blur">
-              <Eye className="h-4 w-4" />
-            </Button>
-          </div>
+          {/* 2D Visualization */}
+          {activeTab === "2d" && (
+            analysisResult?.urls?.map_2d ? (
+              <div className="w-full h-full relative bg-slate-950 flex items-center justify-center p-4">
+                <img
+                  src={analysisResult.urls.map_2d}
+                  alt="2D Evidence Map"
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                />
+              </div>
+            ) : (
+              <div className="w-full h-full relative">
+                <div
+                  className="absolute inset-0 opacity-20"
+                  style={{
+                    backgroundImage: `
+                      linear-gradient(rgba(16, 185, 129, 0.1) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(16, 185, 129, 0.1) 1px, transparent 1px)
+                    `,
+                    backgroundSize: "50px 50px",
+                  }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center space-y-4 p-8">
+                    <Eye className="h-16 w-16 mx-auto text-emerald-500/30" />
+                    <div>
+                      <h3 className="text-xl font-semibold text-slate-400">2D Evidence Map</h3>
+                      <p className="text-sm text-slate-500 mt-2">Color-coded mining activity visualization</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          )}
         </div>
 
         {/* Loading Overlay */}
         {isAnalyzing && (
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50">
             <Card className="w-80">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -249,7 +228,7 @@ export function AuditOfficerDashboard() {
 
       {/* Right Results Panel */}
       {showResults && (
-        <div className="w-full lg:w-96 bg-slate-900 border-t lg:border-l border-slate-800 p-4 space-y-4 overflow-auto">
+        <div className="w-full lg:w-96 bg-slate-900 border-t lg:border-l border-slate-800 p-4 space-y-4 overflow-auto max-h-screen">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold">Analysis Results</h2>
             <Button variant="ghost" size="icon" onClick={() => setShowResults(false)}>
@@ -317,38 +296,35 @@ export function AuditOfficerDashboard() {
             </CardContent>
           </Card>
 
+          {/* Reports Section */}
+          {analysisResult?.urls?.report && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Download className="h-4 w-4" />
+                  PDF Report
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="bg-slate-950 rounded-lg p-3 border border-slate-700">
+                  <p className="text-xs text-muted-foreground mb-2">Mining Compliance Audit Report</p>
+                  <Button className="w-full justify-center" size="sm" asChild>
+                    <a href={analysisResult.urls.report} target="_blank" rel="noopener noreferrer">
+                      <Download className="mr-2 h-3 w-3" />
+                      Download PDF
+                    </a>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Quick Actions */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {analysisResult?.urls?.model_3d && (
-                <Button className="w-full justify-start" variant="secondary" asChild>
-                  <a href={analysisResult.urls.model_3d} target="_blank" rel="noopener noreferrer">
-                    <Mountain className="mr-2 h-4 w-4" />
-                    View 3D Model
-                    <ExternalLink className="ml-auto h-3 w-3" />
-                  </a>
-                </Button>
-              )}
-              {analysisResult?.urls?.map_2d && (
-                <Button className="w-full justify-start" variant="secondary" asChild>
-                  <a href={analysisResult.urls.map_2d} target="_blank" rel="noopener noreferrer">
-                    <Eye className="mr-2 h-4 w-4" />
-                    View Evidence Map
-                    <ExternalLink className="ml-auto h-3 w-3" />
-                  </a>
-                </Button>
-              )}
-              {analysisResult?.urls?.report && (
-                <Button className="w-full justify-start" variant="secondary" asChild>
-                  <a href={analysisResult.urls.report} target="_blank" rel="noopener noreferrer">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download PDF Report
-                    <ExternalLink className="ml-auto h-3 w-3" />
-                  </a>
-                </Button>
-              )}
               {!analysisResult && (
                 <>
                   <Button className="w-full justify-start" variant="secondary" onClick={() => setReportDialogOpen(true)}>
@@ -360,6 +336,12 @@ export function AuditOfficerDashboard() {
                     View Historical Data
                   </Button>
                 </>
+              )}
+              {analysisResult && (
+                <Button className="w-full justify-start" variant="secondary" onClick={() => setReportDialogOpen(true)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Report Details
+                </Button>
               )}
             </CardContent>
           </Card>
@@ -405,19 +387,14 @@ export function AuditOfficerDashboard() {
           </div>
           <DialogFooter className="sm:justify-between">
             <Button variant="outline" onClick={() => setReportDialogOpen(false)}>
-              Cancel
+              Close
             </Button>
-            {analysisResult?.urls?.report ? (
+            {analysisResult?.urls?.report && (
               <Button className="bg-emerald-600 hover:bg-emerald-700" asChild>
                 <a href={analysisResult.urls.report} target="_blank" rel="noopener noreferrer">
                   <Download className="mr-2 h-4 w-4" />
-                  Download PDF Report
+                  Download PDF
                 </a>
-              </Button>
-            ) : (
-              <Button className="bg-emerald-600 hover:bg-emerald-700">
-                <Download className="mr-2 h-4 w-4" />
-                Download PDF
               </Button>
             )}
           </DialogFooter>
