@@ -1,21 +1,26 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
-import shutil
+from fastapi.responses import JSONResponse
 import os
+import json
 import sys
+import shutil
+from datetime import datetime, timedelta
+import ee
+import geemap
 
 # --- PATH FIX: Point to Root Folder ---
 # Go up 1 level (from 'backend' to 'root') to find 'ai_engine'
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
 try:
     from ai_engine.gemini_parser import extract_mining_params
-    from ai_engine.audit_engine import run_audit_pipeline
+    from ai_engine.audit_engine import run_audit_pipeline, initialize_gee
 except ImportError as e:
     print(f" Import Error: {e} (Check if ai_engine folder exists in root)")
     # Mock for safety
     def extract_mining_params(p): return {}
     def run_audit_pipeline(p, output_base_path): return {"html_file": "", "png_file": "", "pdf_file": ""}
+    def initialize_gee(): pass
 
 router = APIRouter()
 
@@ -37,6 +42,12 @@ async def analyze_mine(file: UploadFile = File(...)):
         # 2. Run Gemini
         print(" SERVER: Calling Gemini...")
         params = extract_mining_params(temp_path)
+        
+        # Check if parameters were extracted
+        if not params:
+            print(" ERROR: Could not extract mining parameters from document")
+            if os.path.exists(temp_path): os.remove(temp_path)
+            raise HTTPException(status_code=400, detail="Could not extract mining parameters from the uploaded document. Please ensure the document contains valid mining site information.")
         
         # 3. Run Audit Engine
         # Save to 'backend/public'
@@ -76,6 +87,101 @@ async def analyze_mine(file: UploadFile = File(...)):
 @router.get("/api/analysis/latest")
 async def get_latest_analysis():
     return JSONResponse(content=last_analysis_result)
+
+@router.get("/api/timeseries/{lat}/{lon}")
+async def get_timeseries(lat: float, lon: float):
+    """
+    Fetch available satellite imagery dates from Earth Engine for a location.
+    Returns list of dates with image URLs for timeline slider.
+    """
+    try:
+        initialize_gee()
+        
+        # Define time range: 2020 to current date
+        start_date = '2020-01-01'
+        end_date = datetime.now().strftime('%Y-%m-%d')
+        
+        # Create point geometry
+        point = ee.Geometry.Point([lon, lat])
+        
+        # Get Sentinel-2 collection
+        s2 = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+              .filterBounds(point)
+              .filterDate(start_date, end_date)
+              .sort('system:time_start'))
+        
+        # Get list of available dates
+        dates = s2.aggregate_array('system:time_start').getInfo()
+        
+        # Convert timestamps to readable dates
+        available_dates = []
+        for timestamp in dates:
+            date_obj = datetime.fromtimestamp(timestamp / 1000)
+            available_dates.append(date_obj.strftime('%Y-%m-%d'))
+        
+        # Remove duplicates and sort
+        available_dates = sorted(list(set(available_dates)))
+        
+        return {
+            "status": "success",
+            "dates": available_dates,
+            "count": len(available_dates),
+            "start_date": start_date,
+            "end_date": end_date
+        }
+    
+    except Exception as e:
+        print(f" Timeseries Error: {e}")
+        return {"status": "error", "message": str(e), "dates": []}
+
+@router.get("/api/satellite-image/{lat}/{lon}/{date}")
+async def get_satellite_image(lat: float, lon: float, date: str):
+    """
+    Get satellite image for a specific date and location.
+    Returns image URL and metadata.
+    """
+    try:
+        initialize_gee()
+        
+        # Parse date and create date range (±1 day for cloud-free image)
+        date_obj = datetime.strptime(date, '%Y-%m-%d')
+        start_date = (date_obj - timedelta(days=1)).strftime('%Y-%m-%d')
+        end_date = (date_obj + timedelta(days=1)).strftime('%Y-%m-%d')
+        
+        # Create point geometry with buffer
+        point = ee.Geometry.Point([lon, lat]).buffer(5000)
+        
+        # Get best cloud-free image for that date
+        s2 = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+              .filterBounds(point)
+              .filterDate(start_date, end_date)
+              .sort('CLOUDY_PIXEL_PERCENTAGE')
+              .first())
+        
+        if s2 is None:
+            return {"status": "error", "message": "No imagery available for this date"}
+        
+        # Select RGB bands and create thumbnail URL
+        rgb = s2.select(['B4', 'B3', 'B2'])
+        
+        url = rgb.getThumbURL({
+            'min': 0,
+            'max': 3000,
+            'dimensions': 1024,
+            'region': point
+        })
+        
+        return {
+            "status": "success",
+            "date": date,
+            "image_url": url,
+            "lat": lat,
+            "lon": lon
+        }
+    
+    except Exception as e:
+        print(f" Satellite Image Error: {e}")
+        return {"status": "error", "message": str(e)}
 
 @router.get("/api/items/")
 async def get_items():

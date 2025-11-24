@@ -12,4 +12,5 @@ fpdf
 pydantic
 python-multipart
 google-generativeai
+pdfplumber
 scikit-image

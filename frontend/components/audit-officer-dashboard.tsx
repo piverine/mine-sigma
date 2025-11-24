@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Layers, Play, Loader2, ChevronRight, Download, Eye, Mountain, TrendingDown, ExternalLink, Map, Maximize2 } from "lucide-react"
+import { Calendar, Layers, Play, Loader2, ChevronRight, Download, Eye, Mountain, TrendingDown, ExternalLink, Map, Maximize2, ChevronLeft } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -22,7 +22,12 @@ export function AuditOfficerDashboard() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [reportDialogOpen, setReportDialogOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<"map" | "3d" | "2d">("map")
+  const [activeTab, setActiveTab] = useState<"map" | "3d" | "2d" | "4d">("map")
+  const [timelineData, setTimelineData] = useState<string[]>([])
+  const [selectedDateIndex, setSelectedDateIndex] = useState<number>(0)
+  const [timelineImageUrl, setTimelineImageUrl] = useState<string>("")
+  const [timelineLoading, setTimelineLoading] = useState<boolean>(false)
+  const [timelineError, setTimelineError] = useState<string>("")
   const [layers, setLayers] = useState({
     optical: true,
     sar: false,
@@ -47,6 +52,59 @@ export function AuditOfficerDashboard() {
     }
     fetchLatestAnalysis()
   }, [])
+
+  // Fetch timeline dates when analysis result is available (only once)
+  useEffect(() => {
+    if (analysisResult?.location && timelineData.length === 0) {
+      const [lat, lon] = analysisResult.location.split(",").map((v: string) => parseFloat(v.trim()))
+      fetchTimelineDates(lat, lon)
+    }
+  }, [analysisResult?.location])
+
+  // Fetch timeline image when date is selected (only when selectedDateIndex changes)
+  useEffect(() => {
+    if (timelineData.length > 0 && analysisResult?.location && activeTab === "4d") {
+      const [lat, lon] = analysisResult.location.split(",").map((v: string) => parseFloat(v.trim()))
+      fetchTimelineImage(lat, lon, timelineData[selectedDateIndex])
+    }
+  }, [selectedDateIndex, activeTab])
+
+  const fetchTimelineDates = async (lat: number, lon: number) => {
+    try {
+      setTimelineLoading(true)
+      const response = await fetch(`http://127.0.0.1:8000/api/timeseries/${lat}/${lon}`)
+      const data = await response.json()
+      if (data.dates && data.dates.length > 0) {
+        setTimelineData(data.dates)
+        setSelectedDateIndex(data.dates.length - 1)
+        setTimelineError("")
+      } else {
+        setTimelineError("No satellite imagery available")
+      }
+    } catch (err) {
+      setTimelineError(`Failed to fetch timeline: ${err}`)
+    } finally {
+      setTimelineLoading(false)
+    }
+  }
+
+  const fetchTimelineImage = async (lat: number, lon: number, date: string) => {
+    try {
+      setTimelineLoading(true)
+      const response = await fetch(`http://127.0.0.1:8000/api/satellite-image/${lat}/${lon}/${date}`)
+      const data = await response.json()
+      if (data.status === "success" && data.image_url) {
+        setTimelineImageUrl(data.image_url)
+        setTimelineError("")
+      } else {
+        setTimelineError(data.message || "Failed to load image")
+      }
+    } catch (err) {
+      setTimelineError(`Failed to fetch image: ${err}`)
+    } finally {
+      setTimelineLoading(false)
+    }
+  }
 
   const handleAnalysis = () => {
     setIsAnalyzing(true)
@@ -118,6 +176,18 @@ export function AuditOfficerDashboard() {
           >
             <Eye className="h-4 w-4" />
             2D Visualization
+          </button>
+          <button
+            onClick={() => setActiveTab("4d")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all border-b-2 border-transparent",
+              activeTab === "4d"
+                ? "border-emerald-500 text-emerald-500"
+                : "text-slate-400 hover:text-slate-300"
+            )}
+          >
+            <Calendar className="h-4 w-4" />
+            4D Timeline
           </button>
         </div>
 
@@ -198,6 +268,169 @@ export function AuditOfficerDashboard() {
                 </div>
               </div>
             )
+          )}
+
+          {/* 4D Timeline */}
+          {activeTab === "4d" && (
+            <div className="w-full h-full relative bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col overflow-hidden">
+              {/* Top Slider Section */}
+              {timelineData.length > 0 && (
+                <div className="bg-gradient-to-r from-emerald-900/30 via-cyan-900/20 to-emerald-900/30 border-b border-emerald-500/40 backdrop-blur-sm px-6 py-5 space-y-4">
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-emerald-500/20 rounded-lg">
+                        <Calendar className="w-5 h-5 text-emerald-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400 uppercase tracking-wider">Historical Timeline</p>
+                        <p className="text-lg font-semibold text-emerald-400">Satellite Imagery Evolution</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-slate-500">Available Images</p>
+                      <p className="text-2xl font-bold text-emerald-400">{timelineData.length}</p>
+                    </div>
+                  </div>
+
+                  {/* Interactive Slider */}
+                  <div className="space-y-3">
+                    {/* Large Gradient Slider */}
+                    <div className="relative group">
+                      <input
+                        type="range"
+                        min="0"
+                        max={timelineData.length - 1}
+                        value={selectedDateIndex}
+                        onChange={(e) => setSelectedDateIndex(parseInt(e.target.value))}
+                        className="w-full h-4 bg-slate-700/50 rounded-full appearance-none cursor-pointer accent-emerald-500 hover:accent-emerald-400 transition-all shadow-lg"
+                        style={{
+                          background: `linear-gradient(to right, rgb(5, 150, 105) 0%, rgb(5, 150, 105) ${(selectedDateIndex / (timelineData.length - 1)) * 100}%, rgb(51, 65, 85) ${(selectedDateIndex / (timelineData.length - 1)) * 100}%, rgb(51, 65, 85) 100%)`
+                        }}
+                      />
+                      {/* Tooltip */}
+                      <div className="absolute left-0 right-0 flex justify-center pointer-events-none">
+                        <div className="absolute -top-12 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap shadow-lg border border-emerald-400/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          {timelineData[selectedDateIndex]}
+                          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-emerald-600" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Date Range Labels */}
+                    <div className="flex justify-between text-xs text-slate-400 px-1">
+                      <span className="font-mono text-slate-500">{timelineData[0]}</span>
+                      <span className="font-mono text-emerald-400 font-semibold">{timelineData[Math.floor(timelineData.length / 2)]}</span>
+                      <span className="font-mono text-slate-500">{timelineData[timelineData.length - 1]}</span>
+                    </div>
+
+                    {/* Quick Stats Row */}
+                    <div className="flex gap-3 items-center justify-between">
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => setSelectedDateIndex(Math.max(0, selectedDateIndex - 1))}
+                          disabled={selectedDateIndex === 0}
+                          size="sm"
+                          className="bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 border border-emerald-500/30 hover:border-emerald-500/60 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          onClick={() => setSelectedDateIndex(Math.min(timelineData.length - 1, selectedDateIndex + 1))}
+                          disabled={selectedDateIndex === timelineData.length - 1}
+                          size="sm"
+                          className="bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 border border-emerald-500/30 hover:border-emerald-500/60 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="flex gap-3 items-center">
+                        <div className="text-right">
+                          <p className="text-xs text-slate-500">Current</p>
+                          <p className="text-sm font-bold text-emerald-400">{selectedDateIndex + 1}/{timelineData.length}</p>
+                        </div>
+                        <div className="w-24 bg-slate-700 rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-emerald-500 to-cyan-500 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${((selectedDateIndex + 1) / timelineData.length) * 100}%` }}
+                          />
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-slate-500">Progress</p>
+                          <p className="text-sm font-bold text-cyan-400">{Math.round(((selectedDateIndex + 1) / timelineData.length) * 100)}%</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Header with gradient */}
+              <div className="bg-gradient-to-r from-emerald-900/10 to-cyan-900/10 border-b border-emerald-500/20 px-6 py-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-400 uppercase tracking-wider">Selected Date</p>
+                  <p className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                    {timelineData.length > 0 ? timelineData[selectedDateIndex] : 'N/A'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Error Banner */}
+              {timelineError && (
+                <div className="bg-gradient-to-r from-red-900/40 to-red-800/40 border-b border-red-700/50 text-red-200 px-6 py-3 text-sm flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  {timelineError}
+                </div>
+              )}
+
+              {/* Main Image Viewer */}
+              <div className="flex-1 flex items-center justify-center p-6 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-5">
+                  <div className="absolute inset-0" style={{
+                    backgroundImage: `radial-gradient(circle at 20% 50%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
+                                      radial-gradient(circle at 80% 80%, rgba(34, 197, 94, 0.1) 0%, transparent 50%)`
+                  }} />
+                </div>
+                
+                {timelineLoading ? (
+                  <div className="flex flex-col items-center gap-4 z-10">
+                    <div className="relative w-16 h-16">
+                      <Loader2 className="w-16 h-16 text-emerald-500 animate-spin" />
+                      <div className="absolute inset-0 bg-emerald-500/20 rounded-full animate-pulse" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-slate-300 font-medium">Loading satellite imagery</p>
+                      <p className="text-slate-500 text-sm mt-1">Processing Earth Engine data...</p>
+                    </div>
+                  </div>
+                ) : timelineImageUrl ? (
+                  <div className="relative z-10 group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-xl blur opacity-0 group-hover:opacity-20 transition duration-300" />
+                    <img
+                      src={timelineImageUrl}
+                      alt={`Satellite image for ${timelineData[selectedDateIndex]}`}
+                      className="relative max-w-full max-h-full object-contain rounded-lg shadow-2xl border border-emerald-500/30 hover:border-emerald-500/60 transition-all duration-300"
+                    />
+                    <div className="absolute top-4 right-4 bg-slate-900/80 backdrop-blur px-3 py-2 rounded-lg border border-emerald-500/30">
+                      <p className="text-xs text-slate-400">Date</p>
+                      <p className="text-sm font-mono text-emerald-400">{timelineData[selectedDateIndex]}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center space-y-4 z-10">
+                    <div className="p-4 bg-emerald-500/10 rounded-full w-fit mx-auto">
+                      <Calendar className="h-12 w-12 text-emerald-400/50" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-slate-300">4D Timeline Visualization</h3>
+                      <p className="text-sm text-slate-500 mt-2">Explore satellite imagery from 2020 to 2025</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            </div>
           )}
         </div>
 

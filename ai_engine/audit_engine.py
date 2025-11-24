@@ -40,13 +40,18 @@ def initialize_gee():
 
 def run_audit_pipeline(params, output_base_path="public"):
     # Unpack Parameters
-    lat = params['lat']
-    lon = params['lon']
-    length_m = params['length_m']
-    width_m = params['width_m']
-    project_name = params['project_name']
+    lat = params.get('lat')
+    lon = params.get('lon')
+    length_m = params.get('length_m') or 5000  # Default to 5km if not provided
+    width_m = params.get('width_m') or 8000    # Default to 8km if not provided
+    project_name = params.get('project_name', 'Mining_Audit')
 
     print(f"🚀 ENGINE: Processing {project_name}...")
+    
+    # Validate required parameters
+    if not lat or not lon:
+        raise ValueError("Latitude and Longitude are required for audit")
+    
     initialize_gee()
 
     # --- 1. SETUP PATHS ---
@@ -61,7 +66,8 @@ def run_audit_pipeline(params, output_base_path="public"):
     PDF_FILE = os.path.join(task_dir, f"{safe_name}_Report.pdf")
 
     # --- 2. DOWNLOAD DATA ---
-    buffer_size = max(length_m, width_m) * 3.0
+    # Buffer size to ensure legal zone is well-represented while staying within download limits
+    buffer_size = max(length_m, width_m) * 5.0
     roi = ee.Geometry.Point([lon, lat]).buffer(buffer_size).bounds()
 
     if os.path.exists(DEM_FILE): os.remove(DEM_FILE)
@@ -84,8 +90,15 @@ def run_audit_pipeline(params, output_base_path="public"):
         nir = src.read(2).astype(float)
         ndvi = (nir - red) / (nir + red + 1e-5)
         mine_mask = np.zeros_like(ndvi)
-        mine_mask[ndvi < 0.2] = 1
+        
+        # Sensitive threshold: detect mining areas (bare ground, disturbed soil)
+        # NDVI < 0.3 targets mining/bare ground/urban areas
+        mine_mask[ndvi < 0.3] = 1
         mine_mask = median_filter(mine_mask, size=5)
+        
+        # Debug info
+        print(f"📊 NDVI Stats: min={np.min(ndvi):.3f}, max={np.max(ndvi):.3f}, mean={np.mean(ndvi):.3f}")
+        print(f"📊 Mining pixels detected: {np.sum(mine_mask)} out of {mine_mask.size}")
 
     with rasterio.open(DEM_FILE) as src:
         elevation = src.read(1)
@@ -102,43 +115,49 @@ def run_audit_pipeline(params, output_base_path="public"):
     mine_m = mine_m[:min_r, :min_c]
 
     # --- 4. COORDINATES & BOUNDARY ---
-    eff_res_x = res_x / DOWNSAMPLE
-    eff_res_y = res_y / DOWNSAMPLE
+    # res_x and res_y are already in meters per pixel from the original DEM
+    # After downsampling by 0.5, effective resolution doubles
+    eff_res_x = res_x * DOWNSAMPLE
+    eff_res_y = res_y * DOWNSAMPLE
     
+    rows, cols = z.shape
+    
+    # Debug: Show resolution
+    print(f"📊 Resolution: res_x={res_x:.2f}, res_y={res_y:.2f}")
+    print(f"📊 Effective Resolution: eff_res_x={eff_res_x:.2f}, eff_res_y={eff_res_y:.2f}")
+    print(f"📊 Image shape: {rows}x{cols}")
+    
+    # Use provided dimensions to define legal zone
     px_width = int(width_m / eff_res_x)
     px_length = int(length_m / eff_res_y)
-
-    # Center on Mine
-    if np.sum(mine_m) > 0:
-        cy, cx = center_of_mass(mine_m)
-        cy, cx = int(cy), int(cx)
-    else:
-        rows, cols = z.shape
-        cy, cx = rows//2, cols//2
-
-    r_start = cy - (px_length // 2)
-    r_end   = cy + (px_length // 2)
-    c_start = cx - (px_width // 2)
-    c_end   = cx + (px_width // 2)
-
-    rows, cols = z.shape
-    r_start, r_end = max(0, r_start), min(rows, r_end)
-    c_start, c_end = max(0, c_start), min(cols, c_end)
+    print(f"📊 Legal box size: {px_length}x{px_width} pixels (from {length_m}m x {width_m}m)")
+    
+    # Center on image center (lat/lon maps to center of downloaded ROI)
+    cy, cx = rows // 2, cols // 2
+    
+    # Define legal boundary box centered on the provided coordinates
+    r_start = max(0, cy - (px_length // 2))
+    r_end = min(rows, cy + (px_length // 2))
+    c_start = max(0, cx - (px_width // 2))
+    c_end = min(cols, cx + (px_width // 2))
 
     legal_m = np.zeros_like(z)
     legal_m[r_start:r_end, c_start:c_end] = 1
 
-    # --- 5. COLOR LOGIC (The Perfect Logic) ---
-    plot_values = np.zeros_like(z)
+    # --- 5. COLOR LOGIC (Using the specific Tint/Black/Red logic) ---
+    plot_values = np.zeros_like(z, dtype=float)
     z_norm = (z - np.min(z)) / (np.max(z) - np.min(z) + 1e-5)
 
-    # Base Green
-    plot_values = z_norm * 0.8 
-    # Tint Legal
-    plot_values[legal_m == 1] += 0.2 
-    # Legal Mine (Black)
-    plot_values[(mine_m == 1) & (legal_m == 1)] = 2.0 
-    # Illegal Mine (Red)
+    # Base: Plains (Green) - normalized elevation
+    plot_values = z_norm * 0.8
+
+    # Tint Legal Area (1.2) - adds blue tint to authorized zone
+    plot_values[legal_m == 1] = 1.2
+
+    # Mine Logic
+    # If Mine + Inside Box -> Black (2.0)
+    plot_values[(mine_m == 1) & (legal_m == 1)] = 2.0
+    # If Mine + Outside Box -> Red (3.0)
     illegal_mask_final = (mine_m == 1) & (legal_m == 0)
     plot_values[illegal_mask_final] = 3.0 
 
@@ -146,6 +165,17 @@ def run_audit_pipeline(params, output_base_path="public"):
     pixel_area_ha = (eff_res_x * eff_res_y) / 10000.0
     legal_ha = np.sum((mine_m == 1) & (legal_m == 1)) * pixel_area_ha
     illegal_ha = np.sum(illegal_mask_final) * pixel_area_ha
+    
+    # Debug info
+    legal_pixels = np.sum((mine_m == 1) & (legal_m == 1))
+    illegal_pixels = np.sum(illegal_mask_final)
+    total_box_pixels = (r_end - r_start) * (c_end - c_start)
+    print(f"📊 Legal boundary: rows [{r_start}:{r_end}], cols [{c_start}:{c_end}]")
+    print(f"📊 Total box pixels: {total_box_pixels}")
+    print(f"📊 Legal mining pixels: {legal_pixels}")
+    print(f"📊 Illegal mining pixels: {illegal_pixels}")
+    print(f"📊 Mining in box: {legal_pixels}/{total_box_pixels} = {100*legal_pixels/max(total_box_pixels,1):.1f}%")
+    print(f"📊 Results: Legal={legal_ha:.2f}Ha, Illegal={illegal_ha:.2f}Ha")
     
     stats = {"legal_ha": legal_ha, "illegal_ha": illegal_ha}
 
