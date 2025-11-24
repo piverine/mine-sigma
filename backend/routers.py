@@ -4,7 +4,7 @@ import shutil
 import os
 import sys
 
-# --- 🚨 PATH FIX: Point to Root Folder ---
+# --- PATH FIX: Point to Root Folder ---
 # Go up 1 level (from 'backend' to 'root') to find 'ai_engine'
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
@@ -12,10 +12,10 @@ try:
     from ai_engine.gemini_parser import extract_mining_params
     from ai_engine.audit_engine import run_audit_pipeline
 except ImportError as e:
-    print(f"⚠️ Import Error: {e} (Check if ai_engine folder exists in root)")
+    print(f" Import Error: {e} (Check if ai_engine folder exists in root)")
     # Mock for safety
     def extract_mining_params(p): return {}
-    def run_audit_pipeline(p, output_base_path): return "error.zip"
+    def run_audit_pipeline(p, output_base_path): return {"html_file": "", "png_file": "", "pdf_file": ""}
 
 router = APIRouter()
 
@@ -35,7 +35,7 @@ async def analyze_mine(file: UploadFile = File(...)):
             shutil.copyfileobj(file.file, buffer)
 
         # 2. Run Gemini
-        print("📡 SERVER: Calling Gemini...")
+        print(" SERVER: Calling Gemini...")
         params = extract_mining_params(temp_path)
         
         # 3. Run Audit Engine
@@ -43,7 +43,7 @@ async def analyze_mine(file: UploadFile = File(...)):
         public_dir = os.path.join(os.path.dirname(__file__), "public")
         os.makedirs(public_dir, exist_ok=True)
         
-        zip_path = run_audit_pipeline(params, output_base_path=public_dir)
+        result = run_audit_pipeline(params, output_base_path=public_dir)
         
         # Cleanup Input
         if os.path.exists(temp_path): os.remove(temp_path)
@@ -58,19 +58,19 @@ async def analyze_mine(file: UploadFile = File(...)):
             "status": "success",
             "project": params.get('project_name'),
             "location": f"{params.get('lat')}, {params.get('lon')}",
-            "compliance": "Analysis Complete", 
+            "compliance": "Analysis Complete",
+            "stats": result.get('stats', {}),
             "urls": {
-                "model_3d": f"{base_url}/audit_{safe_name}/3D_Model.html",
-                "map_2d": f"{base_url}/audit_{safe_name}/Evidence_Map.png",
-                "report": f"{base_url}/audit_{safe_name}/Audit_Report.pdf",
-                "download": f"{base_url}/{os.path.basename(zip_path)}"
+                "model_3d": f"{base_url}/audit_{safe_name}/{safe_name}_3D_Model.html",
+                "map_2d": f"{base_url}/audit_{safe_name}/{safe_name}_Evidence_Map.png",
+                "report": f"{base_url}/audit_{safe_name}/{safe_name}_Report.pdf"
             }
         }
 
         return JSONResponse(content=last_analysis_result)
 
     except Exception as e:
-        print(f"❌ ERROR: {e}")
+        print(f" ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/api/analysis/latest")

@@ -8,7 +8,6 @@ import plotly.graph_objects as go
 from fpdf import FPDF
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
-import zipfile
 
 # Inside ai_engine/audit_engine.py
 
@@ -60,9 +59,6 @@ def run_audit_pipeline(params, output_base_path="public"):
     HTML_FILE = os.path.join(task_dir, f"{safe_name}_3D_Model.html")
     PNG_FILE = os.path.join(task_dir, f"{safe_name}_Evidence_Map.png")
     PDF_FILE = os.path.join(task_dir, f"{safe_name}_Report.pdf")
-    # Zip goes one level up so it contains the folder content cleanly if needed, 
-    # or we zip the specific files. Let's zip the specific files to a single archive.
-    ZIP_FILE = os.path.join(output_base_path, f"{safe_name}_Audit_Package.zip")
 
     # --- 2. DOWNLOAD DATA ---
     buffer_size = max(length_m, width_m) * 3.0
@@ -201,10 +197,11 @@ def run_audit_pipeline(params, output_base_path="public"):
     pdf.image(PNG_FILE, x=10, w=190)
     pdf.output(PDF_FILE)
 
-    # Zip
-    with zipfile.ZipFile(ZIP_FILE, 'w') as z:
-        z.write(HTML_FILE, os.path.basename(HTML_FILE))
-        z.write(PNG_FILE, os.path.basename(PNG_FILE))
-        z.write(PDF_FILE, os.path.basename(PDF_FILE))
-    
-    return ZIP_FILE
+    # Return paths to all generated files
+    return {
+        "html_file": HTML_FILE,
+        "png_file": PNG_FILE,
+        "pdf_file": PDF_FILE,
+        "task_dir": task_dir,
+        "stats": stats
+    }

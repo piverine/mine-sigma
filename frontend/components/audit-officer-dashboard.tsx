@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Layers, Play, Loader2, ChevronRight, Download, Eye, Mountain, TrendingDown } from "lucide-react"
+import { Calendar, Layers, Play, Loader2, ChevronRight, Download, Eye, Mountain, TrendingDown, ExternalLink } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,24 @@ export function AuditOfficerDashboard() {
     ndvi: true,
     leaseBoundary: true,
   })
+  const [analysisResult, setAnalysisResult] = useState<any>(null)
+
+  // Fetch latest analysis results on component mount
+  useEffect(() => {
+    const fetchLatestAnalysis = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/api/analysis/latest")
+        const data = await response.json()
+        if (data.status === "success") {
+          setAnalysisResult(data)
+          setShowResults(true)
+        }
+      } catch (error) {
+        console.error("Failed to fetch analysis results:", error)
+      }
+    }
+    fetchLatestAnalysis()
+  }, [])
 
   const handleAnalysis = () => {
     setIsAnalyzing(true)
@@ -36,13 +54,24 @@ export function AuditOfficerDashboard() {
     }, 3000)
   }
 
-  const analysisData = {
+  const analysisData = analysisResult ? {
+    mineName: analysisResult.project || "Jharia Coal Block 4",
+    district: "Dhanbad",
+    depth: "45m",
+    volume: "12,500 m³",
+    encroachment: analysisResult.stats?.illegal_ha ? Math.round((analysisResult.stats.illegal_ha / (analysisResult.stats.illegal_ha + analysisResult.stats.legal_ha)) * 100) : 68,
+    status: "Illegal Activity Detected",
+    legalHa: analysisResult.stats?.legal_ha || 0,
+    illegalHa: analysisResult.stats?.illegal_ha || 0,
+  } : {
     mineName: "Jharia Coal Block 4",
     district: "Dhanbad",
     depth: "45m",
     volume: "12,500 m³",
     encroachment: 68,
     status: "Illegal Activity Detected",
+    legalHa: 0,
+    illegalHa: 0,
   }
 
   return (
@@ -259,18 +288,32 @@ export function AuditOfficerDashboard() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Encroachment Analysis</CardTitle>
-              <CardDescription>Area outside lease boundary</CardDescription>
+              <CardTitle className="text-sm">Mining Area Analysis</CardTitle>
+              <CardDescription>Legal vs Illegal mining areas</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-2xl font-bold text-rose-500">{analysisData.encroachment}%</span>
-                <Badge variant="destructive">Critical</Badge>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Legal Area:</span>
+                  <span className="font-semibold text-emerald-500">{analysisData.legalHa.toFixed(2)} Ha</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Illegal Area:</span>
+                  <span className="font-semibold text-rose-500">{analysisData.illegalHa.toFixed(2)} Ha</span>
+                </div>
               </div>
-              <Progress value={analysisData.encroachment} className="h-2 [&>div]:bg-rose-500" />
-              <p className="text-xs text-muted-foreground">
-                Significant illegal mining detected outside authorized zone
-              </p>
+              {analysisData.encroachment > 0 && (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-bold text-rose-500">{analysisData.encroachment}%</span>
+                    <Badge variant="destructive">Critical</Badge>
+                  </div>
+                  <Progress value={analysisData.encroachment} className="h-2 [&>div]:bg-rose-500" />
+                  <p className="text-xs text-muted-foreground">
+                    Significant illegal mining detected outside authorized zone
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -279,14 +322,45 @@ export function AuditOfficerDashboard() {
               <CardTitle className="text-sm">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button className="w-full justify-start" variant="secondary" onClick={() => setReportDialogOpen(true)}>
-                <Download className="mr-2 h-4 w-4" />
-                Generate Report
-              </Button>
-              <Button className="w-full justify-start bg-transparent" variant="outline">
-                <Eye className="mr-2 h-4 w-4" />
-                View Historical Data
-              </Button>
+              {analysisResult?.urls?.model_3d && (
+                <Button className="w-full justify-start" variant="secondary" asChild>
+                  <a href={analysisResult.urls.model_3d} target="_blank" rel="noopener noreferrer">
+                    <Mountain className="mr-2 h-4 w-4" />
+                    View 3D Model
+                    <ExternalLink className="ml-auto h-3 w-3" />
+                  </a>
+                </Button>
+              )}
+              {analysisResult?.urls?.map_2d && (
+                <Button className="w-full justify-start" variant="secondary" asChild>
+                  <a href={analysisResult.urls.map_2d} target="_blank" rel="noopener noreferrer">
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Evidence Map
+                    <ExternalLink className="ml-auto h-3 w-3" />
+                  </a>
+                </Button>
+              )}
+              {analysisResult?.urls?.report && (
+                <Button className="w-full justify-start" variant="secondary" asChild>
+                  <a href={analysisResult.urls.report} target="_blank" rel="noopener noreferrer">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF Report
+                    <ExternalLink className="ml-auto h-3 w-3" />
+                  </a>
+                </Button>
+              )}
+              {!analysisResult && (
+                <>
+                  <Button className="w-full justify-start" variant="secondary" onClick={() => setReportDialogOpen(true)}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Generate Report
+                  </Button>
+                  <Button className="w-full justify-start bg-transparent" variant="outline">
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Historical Data
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -310,12 +384,12 @@ export function AuditOfficerDashboard() {
                 <span className="font-medium">{analysisData.district}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Mining Depth:</span>
-                <span className="font-medium text-emerald-500">{analysisData.depth}</span>
+                <span className="text-muted-foreground">Legal Area:</span>
+                <span className="font-medium text-emerald-500">{analysisData.legalHa.toFixed(2)} Ha</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Volume:</span>
-                <span className="font-medium">{analysisData.volume}</span>
+                <span className="text-muted-foreground">Illegal Area:</span>
+                <span className="font-medium text-rose-500">{analysisData.illegalHa.toFixed(2)} Ha</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Encroachment:</span>
@@ -333,10 +407,19 @@ export function AuditOfficerDashboard() {
             <Button variant="outline" onClick={() => setReportDialogOpen(false)}>
               Cancel
             </Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700">
-              <Download className="mr-2 h-4 w-4" />
-              Download PDF
-            </Button>
+            {analysisResult?.urls?.report ? (
+              <Button className="bg-emerald-600 hover:bg-emerald-700" asChild>
+                <a href={analysisResult.urls.report} target="_blank" rel="noopener noreferrer">
+                  <Download className="mr-2 h-4 w-4" />
+                  Download PDF Report
+                </a>
+              </Button>
+            ) : (
+              <Button className="bg-emerald-600 hover:bg-emerald-700">
+                <Download className="mr-2 h-4 w-4" />
+                Download PDF
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
