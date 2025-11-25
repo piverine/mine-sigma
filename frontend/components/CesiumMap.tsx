@@ -156,7 +156,7 @@ export default function CesiumMap() {
     };
 
     return (
-        <div className="relative w-full h-screen overflow-hidden">
+        <div className="relative w-full h-full overflow-hidden">
             {/* Cesium Container */}
             <div ref={containerRef} className="absolute inset-0 z-0" />
 
