@@ -2,71 +2,99 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Shield, ArrowRight, Activity, Globe, Lock } from "lucide-react"
+import { Shield, ArrowRight, Activity, Globe, Lock, Zap, BarChart3, Radar } from "lucide-react"
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-50 flex flex-col overflow-hidden">
+      {/* Animated background elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" />
+      </div>
+
       {/* Navigation */}
-      <header className="border-b border-slate-800 bg-slate-950/50 backdrop-blur fixed w-full z-50">
+      <header className="border-b border-emerald-500/20 bg-slate-950/40 backdrop-blur-xl fixed w-full z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-              <Shield className="w-5 h-5 text-emerald-500" />
+          <div className="flex items-center gap-3 group cursor-pointer">
+            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-emerald-500/50 transition-all">
+              <Shield className="w-6 h-6 text-white" />
             </div>
-            <span className="font-bold text-xl tracking-tight">Mine-Sigma</span>
+            <div className="flex flex-col">
+              <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Mine-Sigma</span>
+              <span className="text-xs text-slate-500 font-medium">Satellite Intelligence</span>
+            </div>
           </div>
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-400">
-            <Link href="#features" className="hover:text-emerald-500 transition-colors">
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+            <Link href="#features" className="text-slate-400 hover:text-emerald-400 transition-colors relative group">
               Features
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-cyan-500 group-hover:w-full transition-all duration-300" />
             </Link>
-            <Link href="#about" className="hover:text-emerald-500 transition-colors">
+            <Link href="#about" className="text-slate-400 hover:text-emerald-400 transition-colors relative group">
               About
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-cyan-500 group-hover:w-full transition-all duration-300" />
             </Link>
-            <Link href="#contact" className="hover:text-emerald-500 transition-colors">
+            <Link href="#contact" className="text-slate-400 hover:text-emerald-400 transition-colors relative group">
               Contact
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-500 to-cyan-500 group-hover:w-full transition-all duration-300" />
             </Link>
           </nav>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <Link href="/admin">
-              <Button variant="ghost" className="text-slate-400 hover:text-white">
-                Admin Login
+              <Button variant="ghost" className="text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all">
+                Admin
               </Button>
             </Link>
             <Link href="/officer">
-              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">Get Started</Button>
+              <Button className="bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-emerald-500/50 transition-all">
+                Launch <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </Link>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/20 via-slate-950 to-slate-950" />
-        <div className="container mx-auto relative z-10 text-center max-w-4xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-sm font-medium mb-8 animate-fade-in">
-            <Activity className="w-4 h-4" />
-            <span>Live Satellite Monitoring System</span>
+      <section className="pt-32 pb-20 px-4 relative overflow-hidden z-10">
+        <div className="container mx-auto relative z-10 text-center max-w-5xl">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/40 text-emerald-300 text-sm font-semibold mb-8 backdrop-blur-sm">
+            <Zap className="w-4 h-4" />
+            <span>Real-Time Satellite Intelligence Platform</span>
           </div>
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400">
-            Advanced Mining Intelligence & Oversight
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-r from-emerald-300 via-cyan-300 to-emerald-300 leading-tight">
+            Mining Oversight Reimagined
           </h1>
-          <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Leverage AI-powered satellite imagery to detect illegal mining activities, monitor compliance, and ensure
-            sustainable resource extraction in real-time.
+          <p className="text-xl md:text-2xl text-slate-300 mb-12 max-w-3xl mx-auto leading-relaxed font-light">
+            Harness AI-powered satellite imagery to detect illegal mining, monitor compliance in real-time, and ensure sustainable resource extraction with precision.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
             <Link href="/officer">
-              <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white h-12 px-8 text-lg">
+              <Button size="lg" className="bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white h-14 px-10 text-lg font-semibold shadow-xl hover:shadow-emerald-500/50 transition-all">
                 Launch Dashboard
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <ArrowRight className="ml-3 h-5 w-5" />
               </Button>
             </Link>
             <Link href="/admin">
-              <Button size="lg" variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 h-12 px-8 text-lg">
+              <Button size="lg" className="border-2 border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/10 h-14 px-10 text-lg font-semibold transition-all">
                 Admin Portal
               </Button>
             </Link>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-6 mb-16">
+            <div className="p-4 rounded-lg bg-slate-800/30 border border-emerald-500/20 backdrop-blur-sm">
+              <p className="text-3xl font-bold text-emerald-400">98%</p>
+              <p className="text-sm text-slate-400 mt-1">Detection Accuracy</p>
+            </div>
+            <div className="p-4 rounded-lg bg-slate-800/30 border border-emerald-500/20 backdrop-blur-sm">
+              <p className="text-3xl font-bold text-cyan-400">24/7</p>
+              <p className="text-sm text-slate-400 mt-1">Monitoring Active</p>
+            </div>
+            <div className="p-4 rounded-lg bg-slate-800/30 border border-emerald-500/20 backdrop-blur-sm">
+              <p className="text-3xl font-bold text-emerald-400">5+</p>
+              <p className="text-sm text-slate-400 mt-1">Years Historical Data</p>
+            </div>
           </div>
         </div>
 
@@ -94,60 +122,110 @@ export default function LandingPage() {
       </section>
 
       {/* Features Grid */}
-      <section id="features" className="py-24 bg-slate-950 relative">
+      <section id="features" className="py-32 relative z-10">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Comprehensive Monitoring Suite</h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
-              Equipped with state-of-the-art tools for complete oversight of mining operations.
+          <div className="text-center mb-20">
+            <h2 className="text-5xl md:text-6xl font-black tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-emerald-300 to-cyan-300">
+              Comprehensive Monitoring Suite
+            </h2>
+            <p className="text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed">
+              Equipped with state-of-the-art tools for complete oversight of mining operations and environmental compliance.
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-emerald-500/50 transition-colors group">
-              <div className="w-12 h-12 bg-emerald-500/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-emerald-500/20 transition-colors">
-                <Globe className="w-6 h-6 text-emerald-500" />
+            <div className="group relative">
+              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-2xl blur opacity-0 group-hover:opacity-20 transition duration-300" />
+              <div className="relative p-8 rounded-2xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-emerald-500/20 hover:border-emerald-500/50 transition-all backdrop-blur-sm">
+                <div className="w-14 h-14 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-xl flex items-center justify-center mb-6 group-hover:from-emerald-500/40 group-hover:to-emerald-600/40 transition-all">
+                  <Globe className="w-7 h-7 text-emerald-400" />
+                </div>
+                <h3 className="text-2xl font-bold mb-3 text-emerald-300">Satellite Integration</h3>
+                <p className="text-slate-400 leading-relaxed">
+                  Real-time access to multi-spectral satellite imagery with 5+ years of historical data for precise terrain analysis and change detection.
+                </p>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Satellite Integration</h3>
-              <p className="text-slate-400 leading-relaxed">
-                Real-time access to multi-spectral satellite imagery for precise terrain analysis and change detection.
-              </p>
             </div>
-            <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-emerald-500/50 transition-colors group">
-              <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
-                <Activity className="w-6 h-6 text-blue-500" />
+
+            <div className="group relative">
+              <div className="absolute -inset-1 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-2xl blur opacity-0 group-hover:opacity-20 transition duration-300" />
+              <div className="relative p-8 rounded-2xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-cyan-500/20 hover:border-cyan-500/50 transition-all backdrop-blur-sm">
+                <div className="w-14 h-14 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-xl flex items-center justify-center mb-6 group-hover:from-cyan-500/40 group-hover:to-blue-600/40 transition-all">
+                  <Radar className="w-7 h-7 text-cyan-400" />
+                </div>
+                <h3 className="text-2xl font-bold mb-3 text-cyan-300">AI Anomaly Detection</h3>
+                <p className="text-slate-400 leading-relaxed">
+                  Advanced machine learning identifies illegal mining patterns, encroachment, and unauthorized vegetation clearing with 98% accuracy.
+                </p>
               </div>
-              <h3 className="text-xl font-semibold mb-2">AI Anomaly Detection</h3>
-              <p className="text-slate-400 leading-relaxed">
-                Automated identification of illegal mining patterns, encroachment, and unauthorized vegetation clearing.
-              </p>
             </div>
-            <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-emerald-500/50 transition-colors group">
-              <div className="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-purple-500/20 transition-colors">
-                <Lock className="w-6 h-6 text-purple-500" />
+
+            <div className="group relative">
+              <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl blur opacity-0 group-hover:opacity-20 transition duration-300" />
+              <div className="relative p-8 rounded-2xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-purple-500/20 hover:border-purple-500/50 transition-all backdrop-blur-sm">
+                <div className="w-14 h-14 bg-gradient-to-br from-purple-500/20 to-pink-600/20 rounded-xl flex items-center justify-center mb-6 group-hover:from-purple-500/40 group-hover:to-pink-600/40 transition-all">
+                  <BarChart3 className="w-7 h-7 text-purple-400" />
+                </div>
+                <h3 className="text-2xl font-bold mb-3 text-purple-300">Secure Reporting</h3>
+                <p className="text-slate-400 leading-relaxed">
+                  Encrypted reporting channels with automated compliance documentation and regulatory action initiation for officers.
+                </p>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Secure Reporting</h3>
-              <p className="text-slate-400 leading-relaxed">
-                Encrypted reporting channels for officers to document findings and initiate regulatory actions.
-              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-12 border-t border-slate-800 bg-slate-950 text-slate-400 text-sm">
-        <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-emerald-600" />
-            <span className="font-semibold text-slate-200">Mine-Sigma</span>
+      <footer className="py-16 border-t border-emerald-500/20 bg-gradient-to-b from-slate-900/50 to-slate-950 text-slate-400 text-sm relative z-10">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-4 gap-12 mb-12">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-white" />
+                </div>
+                <span className="font-bold text-lg bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Mine-Sigma</span>
+              </div>
+              <p className="text-slate-500">Advanced satellite intelligence for mining oversight and compliance monitoring.</p>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold text-white mb-4">Product</h4>
+              <ul className="space-y-2">
+                <li><a href="#features" className="text-slate-400 hover:text-emerald-400 transition-colors">Features</a></li>
+                <li><a href="#" className="text-slate-400 hover:text-emerald-400 transition-colors">Pricing</a></li>
+                <li><a href="#" className="text-slate-400 hover:text-emerald-400 transition-colors">Documentation</a></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold text-white mb-4">Company</h4>
+              <ul className="space-y-2">
+                <li><a href="#" className="text-slate-400 hover:text-emerald-400 transition-colors">About Us</a></li>
+                <li><a href="#" className="text-slate-400 hover:text-emerald-400 transition-colors">Blog</a></li>
+                <li><a href="#" className="text-slate-400 hover:text-emerald-400 transition-colors">Careers</a></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold text-white mb-4">Legal</h4>
+              <ul className="space-y-2">
+                <li><a href="#" className="text-slate-400 hover:text-emerald-400 transition-colors">Privacy Policy</a></li>
+                <li><a href="#" className="text-slate-400 hover:text-emerald-400 transition-colors">Terms of Service</a></li>
+                <li><a href="#" className="text-slate-400 hover:text-emerald-400 transition-colors">Contact Support</a></li>
+              </ul>
+            </div>
           </div>
-          <div className="flex gap-8">
-            <a href="#" className="hover:text-emerald-500 transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-emerald-500 transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-emerald-500 transition-colors">Contact Support</a>
+          
+          <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
+            <p className="text-slate-500">© 2024 Mine-Sigma Intelligence. All rights reserved.</p>
+            <div className="flex gap-6">
+              <a href="#" className="text-slate-400 hover:text-emerald-400 transition-colors">Twitter</a>
+              <a href="#" className="text-slate-400 hover:text-emerald-400 transition-colors">LinkedIn</a>
+              <a href="#" className="text-slate-400 hover:text-emerald-400 transition-colors">GitHub</a>
+            </div>
           </div>
-          <p>© 2024 Mine-Sigma Intelligence. All rights reserved.</p>
         </div>
       </footer>
     </div>

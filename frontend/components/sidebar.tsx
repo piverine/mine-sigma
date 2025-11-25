@@ -13,7 +13,9 @@ import {
   Users,
   Layers,
   Activity,
-  Upload
+  Upload,
+  ChevronRight,
+  Zap
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -55,19 +57,26 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
   const NavButton = ({ item, isActive }: { item: NavItem; isActive: boolean }) => {
     const button = (
-      <Link href={item.href} className="w-full">
+      <Link href={item.href} className="w-full group">
         <Button
           variant="ghost"
           size="icon"
           className={cn(
-            "w-full h-12 rounded-lg transition-all duration-200",
-            "hover:bg-emerald-500/10 hover:text-emerald-400",
-            isActive && "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
-            !isActive && "text-slate-400"
+            "w-full h-11 rounded-lg transition-all duration-300 relative overflow-hidden",
+            isActive 
+              ? "bg-gradient-to-r from-emerald-600/30 to-cyan-600/30 text-emerald-300 border border-emerald-500/50 shadow-lg shadow-emerald-500/20" 
+              : "text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/30",
+            "group-hover:translate-x-1 transition-transform"
           )}
         >
-          <item.icon className="h-5 w-5" />
-          {isOpen && <span className="ml-3 text-sm font-medium">{item.label}</span>}
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-cyan-500/0 group-hover:from-emerald-500/10 group-hover:to-cyan-500/10 transition-all" />
+          <item.icon className="h-5 w-5 relative z-10" />
+          {isOpen && (
+            <>
+              <span className="ml-3 text-sm font-semibold relative z-10">{item.label}</span>
+              {isActive && <ChevronRight className="ml-auto h-4 w-4 relative z-10" />}
+            </>
+          )}
         </Button>
       </Link>
     )
@@ -76,7 +85,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
       return (
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>{button}</TooltipTrigger>
-          <TooltipContent side="right" className="bg-slate-800 border-slate-700">
+          <TooltipContent side="right" className="bg-gradient-to-r from-emerald-900 to-slate-800 border-emerald-500/30 text-emerald-300 font-semibold">
             <p>{item.label}</p>
           </TooltipContent>
         </Tooltip>
@@ -90,27 +99,32 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     <TooltipProvider>
       <aside
         className={cn(
-          "bg-slate-950 border-r border-slate-800/50 transition-all duration-300 flex flex-col",
+          "bg-gradient-to-b from-slate-900 to-slate-950 border-r border-emerald-500/20 transition-all duration-300 flex flex-col shadow-2xl",
           isOpen ? "w-64" : "w-20"
         )}
       >
         {/* Logo/Brand Section */}
-        <div className="h-16 border-b border-slate-800/50 flex items-center justify-center px-4">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+        <div className="h-16 border-b border-emerald-500/20 flex items-center justify-center px-4 bg-gradient-to-r from-emerald-900/20 to-cyan-900/20 backdrop-blur-sm">
+          <Link href="/" className="flex items-center gap-3 group w-full">
+            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/30 group-hover:shadow-emerald-500/50 transition-all group-hover:scale-110">
               <Shield className="w-6 h-6 text-white" />
             </div>
             {isOpen && (
-              <div>
-                <h1 className="font-bold text-sm text-slate-100">Mine-Sigma</h1>
-                <p className="text-xs text-slate-500">Satellite Intel</p>
+              <div className="flex-1">
+                <h1 className="font-bold text-sm bg-gradient-to-r from-emerald-300 to-cyan-300 bg-clip-text text-transparent">Mine-Sigma</h1>
+                <p className="text-xs text-slate-500 font-medium">Satellite Intel</p>
               </div>
             )}
           </Link>
         </div>
 
         {/* Main Navigation */}
-        <nav className="flex-1 p-3 overflow-y-auto">
+        <nav className="flex-1 p-4 overflow-y-auto space-y-2">
+          {isOpen && (
+            <div className="px-2 py-2 mb-2">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Navigation</p>
+            </div>
+          )}
           <div className="space-y-1">
             {mainNavItems.map((item) => {
               const isActive = pathname === item.href
@@ -120,20 +134,22 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
         </nav>
 
         {/* Bottom Actions */}
-        <div className="p-3 border-t border-slate-800/50 space-y-1">
+        <div className="p-4 border-t border-emerald-500/20 bg-gradient-to-t from-slate-950 to-transparent space-y-2">
           {!isOpen ? (
             <>
               <Tooltip delayDuration={0}>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="w-full h-12 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-300"
-                  >
-                    <Settings className="h-5 w-5" />
-                  </Button>
+                  <Link href="/admin/settings" className="w-full">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="w-full h-11 rounded-lg text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/30 transition-all"
+                    >
+                      <Settings className="h-5 w-5" />
+                    </Button>
+                  </Link>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="bg-slate-800 border-slate-700">
+                <TooltipContent side="right" className="bg-gradient-to-r from-emerald-900 to-slate-800 border-emerald-500/30 text-emerald-300 font-semibold">
                   <p>Settings</p>
                 </TooltipContent>
               </Tooltip>
@@ -143,33 +159,35 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="w-full h-12 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-300"
+                      className="w-full h-11 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 transition-all"
                     >
                       <LogOut className="h-5 w-5" />
                     </Button>
                   </Link>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="bg-slate-800 border-slate-700">
+                <TooltipContent side="right" className="bg-gradient-to-r from-red-900 to-slate-800 border-red-500/30 text-red-300 font-semibold">
                   <p>Logout</p>
                 </TooltipContent>
               </Tooltip>
             </>
           ) : (
             <>
-              <Button
-                variant="ghost"
-                className="w-full h-12 justify-start rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-300"
-              >
-                <Settings className="h-5 w-5" />
-                <span className="ml-3 text-sm font-medium">Settings</span>
-              </Button>
+              <Link href="/admin/settings" className="w-full">
+                <Button
+                  variant="ghost"
+                  className="w-full h-11 justify-start rounded-lg text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/30 transition-all group"
+                >
+                  <Settings className="h-5 w-5" />
+                  <span className="ml-3 text-sm font-semibold">Settings</span>
+                </Button>
+              </Link>
               <Link href="/" className="w-full">
                 <Button
                   variant="ghost"
-                  className="w-full h-12 justify-start rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-300"
+                  className="w-full h-11 justify-start rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 transition-all"
                 >
                   <LogOut className="h-5 w-5" />
-                  <span className="ml-3 text-sm font-medium">Logout</span>
+                  <span className="ml-3 text-sm font-semibold">Logout</span>
                 </Button>
               </Link>
             </>
