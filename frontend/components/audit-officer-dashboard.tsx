@@ -1,5 +1,7 @@
 "use client"
 
+import dynamic from "next/dynamic";
+
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -26,6 +28,7 @@ export function AuditOfficerDashboard() {
   const [timelineData, setTimelineData] = useState<string[]>([])
   const [selectedDateIndex, setSelectedDateIndex] = useState<number>(0)
   const [timelineImageUrl, setTimelineImageUrl] = useState<string>("")
+  const [timelineImageBounds, setTimelineImageBounds] = useState<any>(null)
   const [timelineLoading, setTimelineLoading] = useState<boolean>(false)
   const [timelineError, setTimelineError] = useState<string>("")
   const [layers, setLayers] = useState({
@@ -95,6 +98,7 @@ export function AuditOfficerDashboard() {
       const data = await response.json()
       if (data.status === "success" && data.image_url) {
         setTimelineImageUrl(data.image_url)
+        setTimelineImageBounds(data.bounds)
         setTimelineError("")
       } else {
         setTimelineError(data.message || "Failed to load image")
@@ -135,10 +139,10 @@ export function AuditOfficerDashboard() {
   }
 
   return (
-    <div className="h-full flex flex-col lg:flex-row">
+    <div className="h-screen flex flex-col lg:flex-row">
 
       {/* Center Viewer - Map and 3D Satellite Data */}
-      <div className="flex-1 relative bg-slate-950 flex flex-col w-full">
+      <div className="flex-1 relative bg-slate-950 flex flex-col w-full overflow-auto">
         {/* Tab Navigation */}
         <div className="w-full bg-slate-900 border-b border-slate-800 flex">
           <button
@@ -344,7 +348,7 @@ export function AuditOfficerDashboard() {
                           <ChevronRight className="w-4 h-4" />
                         </Button>
                       </div>
-                      
+
                       <div className="flex gap-3 items-center">
                         <div className="text-right">
                           <p className="text-xs text-slate-500">Current</p>
@@ -385,14 +389,14 @@ export function AuditOfficerDashboard() {
               )}
 
               {/* Main Image Viewer */}
-              <div className="flex-1 flex items-center justify-center p-6 relative overflow-hidden">
+              <div className="flex-1 flex relative overflow-hidden min-h-[600px]">
                 <div className="absolute inset-0 opacity-5">
                   <div className="absolute inset-0" style={{
                     backgroundImage: `radial-gradient(circle at 20% 50%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
                                       radial-gradient(circle at 80% 80%, rgba(34, 197, 94, 0.1) 0%, transparent 50%)`
                   }} />
                 </div>
-                
+
                 {timelineLoading ? (
                   <div className="flex flex-col items-center gap-4 z-10">
                     <div className="relative w-16 h-16">
@@ -405,17 +409,12 @@ export function AuditOfficerDashboard() {
                     </div>
                   </div>
                 ) : timelineImageUrl ? (
-                  <div className="relative z-10 group">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-xl blur opacity-0 group-hover:opacity-20 transition duration-300" />
-                    <img
-                      src={timelineImageUrl}
-                      alt={`Satellite image for ${timelineData[selectedDateIndex]}`}
-                      className="relative max-w-full max-h-full object-contain rounded-lg shadow-2xl border border-emerald-500/30 hover:border-emerald-500/60 transition-all duration-300"
+                  <div className="w-full h-full">
+                    <CesiumTimelineViewer
+                      imageUrl={timelineImageUrl}
+                      bounds={timelineImageBounds}
+                      date={timelineData[selectedDateIndex]}
                     />
-                    <div className="absolute top-4 right-4 bg-slate-900/80 backdrop-blur px-3 py-2 rounded-lg border border-emerald-500/30">
-                      <p className="text-xs text-slate-400">Date</p>
-                      <p className="text-sm font-mono text-emerald-400">{timelineData[selectedDateIndex]}</p>
-                    </div>
                   </div>
                 ) : (
                   <div className="text-center space-y-4 z-10">
@@ -636,3 +635,9 @@ export function AuditOfficerDashboard() {
     </div>
   )
 }
+
+// Dynamic import for Cesium component to avoid SSR issues
+const CesiumTimelineViewer = dynamic(
+  () => import("./CesiumTimelineViewer"),
+  { ssr: false }
+);

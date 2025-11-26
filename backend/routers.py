@@ -176,7 +176,13 @@ async def get_satellite_image(lat: float, lon: float, date: str):
             "date": date,
             "image_url": url,
             "lat": lat,
-            "lon": lon
+            "lon": lon,
+            "bounds": {
+                "west": point.bounds().getInfo()['coordinates'][0][0][0],
+                "south": point.bounds().getInfo()['coordinates'][0][0][1],
+                "east": point.bounds().getInfo()['coordinates'][0][2][0],
+                "north": point.bounds().getInfo()['coordinates'][0][2][1]
+            }
         }
     
     except Exception as e:
