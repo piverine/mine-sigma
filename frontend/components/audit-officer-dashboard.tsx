@@ -19,6 +19,15 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
+import { AoiToolsPanel } from "@/components/aoi-tools"
+
+interface DemQuantSummary {
+  totalVolumeCubicMeters: number
+  totalAreaHectares: number
+  blockCount: number
+  averageMaxDepthMeters: number
+  averageMeanDepthMeters: number
+}
 
 export function AuditOfficerDashboard() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -38,6 +47,7 @@ export function AuditOfficerDashboard() {
     leaseBoundary: true,
   })
   const [analysisResult, setAnalysisResult] = useState<any>(null)
+  const [demSummary, setDemSummary] = useState<DemQuantSummary | null>(null)
 
   // Fetch latest analysis results on component mount
   useEffect(() => {
@@ -118,11 +128,16 @@ export function AuditOfficerDashboard() {
     }, 3000)
   }
 
+  const demDepthMeters = demSummary?.averageMeanDepthMeters ?? 0
+  const demVolumeCubicMeters = demSummary?.totalVolumeCubicMeters ?? 0
+  const formattedDepth = `${demDepthMeters.toFixed(1)}m`
+  const formattedVolume = `${demVolumeCubicMeters.toLocaleString(undefined, { maximumFractionDigits: 0 })} m³`
+
   const analysisData = analysisResult ? {
     mineName: analysisResult.project || "Jharia Coal Block 4",
     district: "Dhanbad",
-    depth: "45m",
-    volume: "12,500 m³",
+    depth: formattedDepth,
+    volume: formattedVolume,
     encroachment: analysisResult.stats?.illegal_ha ? Math.round((analysisResult.stats.illegal_ha / (analysisResult.stats.illegal_ha + analysisResult.stats.legal_ha)) * 100) : 68,
     status: "Illegal Activity Detected",
     legalHa: analysisResult.stats?.legal_ha || 0,
@@ -130,8 +145,8 @@ export function AuditOfficerDashboard() {
   } : {
     mineName: "Jharia Coal Block 4",
     district: "Dhanbad",
-    depth: "45m",
-    volume: "12,500 m³",
+    depth: formattedDepth,
+    volume: formattedVolume,
     encroachment: 68,
     status: "Illegal Activity Detected",
     legalHa: 0,
@@ -577,6 +592,9 @@ export function AuditOfficerDashboard() {
               )}
             </CardContent>
           </Card>
+
+          {/* AOI / Imagery / DEM Tools */}
+          <AoiToolsPanel onQuantSummaryChange={setDemSummary} />
         </div>
       )}
 

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
+
 import os
 import json
 import sys
@@ -7,6 +8,11 @@ import shutil
 from datetime import datetime, timedelta
 import ee
 import geemap
+
+# New modular routers for AOI, imagery & quantitative analysis
+from app.aoi_router import router as aoi_router
+from app.imagery_router import router as imagery_router
+from app.quantitative_analysis import router as quantitative_router
 
 # --- PATH FIX: Point to Root Folder ---
 # Go up 1 level (from 'backend' to 'root') to find 'ai_engine'
@@ -23,6 +29,11 @@ except ImportError as e:
     def initialize_gee(): pass
 
 router = APIRouter()
+
+# Mount sub-routers without changing existing endpoints
+router.include_router(aoi_router)
+router.include_router(imagery_router)
+router.include_router(quantitative_router)
 
 # GLOBAL STATE (For Dashboard)
 last_analysis_result = {

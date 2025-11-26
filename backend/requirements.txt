@@ -15,3 +15,9 @@ google-generativeai
 pdfplumber
 scikit-image
 python-dotenv
+
+# Geospatial + DEM processing
+geopandas
+shapely
+pyproj
+requests
