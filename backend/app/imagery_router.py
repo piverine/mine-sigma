@@ -218,7 +218,7 @@ async def fetch_sentinel2_for_aoi(
         aoi_id=aoi_id,
         metadata=metadata,
         download_url=url,
-        thumbnail_url=None,
+        thumbnail_url=meta.get("thumbnail_url"),
     )
 
     imagery_store[imagery_id] = response

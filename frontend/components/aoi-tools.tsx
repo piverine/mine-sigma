@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { FileUpload } from "@/components/file-upload"
-import { Loader2, Map, Satellite, Database } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Loader2, Map, Satellite, Database, Maximize2 } from "lucide-react"
 
 const BACKEND_BASE_URL = "http://127.0.0.1:8000"
 
@@ -80,6 +81,7 @@ export function AoiToolsPanel({ onQuantSummaryChange }: AoiToolsPanelProps) {
   const [quantLoading, setQuantLoading] = useState(false)
   const [quantResult, setQuantResult] = useState<QuantResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [imageDialogOpen, setImageDialogOpen] = useState(false)
 
   const loadAois = async () => {
     try {
@@ -313,6 +315,25 @@ export function AoiToolsPanel({ onQuantSummaryChange }: AoiToolsPanelProps) {
                 <span className="text-slate-400">Resolution</span>
                 <span className="font-medium text-slate-200">{imagery.metadata.resolution}</span>
               </div>
+              {imagery.thumbnail_url && (
+                <button
+                  type="button"
+                  onClick={() => setImageDialogOpen(true)}
+                  className="mt-2 w-full rounded overflow-hidden border border-slate-800/60 bg-slate-950/60 relative group focus:outline-none focus:ring-2 focus:ring-emerald-500/60"
+                >
+                  <img
+                    src={imagery.thumbnail_url}
+                    alt="Sentinel-2 preview"
+                    className="w-full h-40 object-cover group-hover:brightness-110 transition"
+                  />
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <div className="flex items-center gap-2 text-xs font-medium text-emerald-100">
+                      <Maximize2 className="h-4 w-4" />
+                      <span>View full screen</span>
+                    </div>
+                  </div>
+                </button>
+              )}
               <div className="flex justify-between items-center mt-1">
                 <span className="text-slate-400">Download</span>
                 <a
@@ -327,6 +348,23 @@ export function AoiToolsPanel({ onQuantSummaryChange }: AoiToolsPanelProps) {
             </div>
           )}
         </div>
+
+        {imagery?.thumbnail_url && (
+          <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
+            <DialogContent className="max-w-5xl">
+              <DialogHeader>
+                <DialogTitle className="text-sm">Sentinel-2 Mosaic Preview</DialogTitle>
+              </DialogHeader>
+              <div className="mt-2">
+                <img
+                  src={imagery.thumbnail_url}
+                  alt="Sentinel-2 full preview"
+                  className="w-full h-auto rounded-md object-contain max-h-[80vh]"
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
 
         {/* Quantitative DEM Analysis */}
         <div className="space-y-2">

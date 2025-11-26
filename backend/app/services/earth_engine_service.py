@@ -106,6 +106,20 @@ class EarthEngineService:
                 "resolution": "10-20m",
             }
 
+        # Optional quick-look thumbnail (PNG) for direct display in the UI
+        thumb_url = None
+        try:
+            vis_image = image.visualize(bands=["B4", "B3", "B2"], min=0, max=3000)
+            thumb_url = vis_image.getThumbURL(
+                {
+                    "region": ee_polygon.bounds().getInfo()["coordinates"],
+                    "dimensions": 512,
+                    "format": "png",
+                }
+            )
+        except Exception:  # noqa: BLE001
+            thumb_url = None
+
         # Determine AOI area to adapt scale
         bounds = ee_polygon.bounds().getInfo()["coordinates"]
         area = ee_polygon.area().getInfo()  # square meters
@@ -149,6 +163,8 @@ class EarthEngineService:
 
         metadata["scale_meters"] = final_scale
         metadata["area_km2"] = round(area_km2, 2)
+        if thumb_url:
+            metadata["thumbnail_url"] = thumb_url
 
         return url, metadata
 
