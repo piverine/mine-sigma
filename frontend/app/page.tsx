@@ -40,14 +40,14 @@ export default function LandingPage() {
             </Link>
           </nav>
           <div className="flex items-center gap-3">
-            <Link href="/admin">
+            <Link href="/login">
               <Button variant="ghost" className="text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all">
-                Admin
+                Sign In
               </Button>
             </Link>
-            <Link href="/officer">
+            <Link href="/signup">
               <Button className="bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-emerald-500/50 transition-all">
-                Launch <ArrowRight className="ml-2 h-4 w-4" />
+                Sign Up <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -68,15 +68,15 @@ export default function LandingPage() {
             Harness AI-powered satellite imagery to detect illegal mining, monitor compliance in real-time, and ensure sustainable resource extraction with precision.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-            <Link href="/officer">
+            <Link href="/signup">
               <Button size="lg" className="bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white h-14 px-10 text-lg font-semibold shadow-xl hover:shadow-emerald-500/50 transition-all">
-                Launch Dashboard
+                Get Started
                 <ArrowRight className="ml-3 h-5 w-5" />
               </Button>
             </Link>
-            <Link href="/admin">
+            <Link href="/login">
               <Button size="lg" className="border-2 border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/10 h-14 px-10 text-lg font-semibold transition-all">
-                Admin Portal
+                Sign In
               </Button>
             </Link>
           </div>

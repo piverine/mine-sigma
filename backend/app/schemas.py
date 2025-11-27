@@ -176,6 +176,46 @@ class SearchLocation(BaseModel):
     admin_area: Optional[str] = None
 
 
+class OfficerAssignedAlert(BaseModel):
+    id: str
+    mine_name: str
+    district: str
+    severity: str
+    status: str
+    due_in_hours: int
+
+
+class OfficerSiteVisit(BaseModel):
+    id: str
+    site_name: str
+    district: str
+    scheduled_for: str
+    priority: str
+
+
+class OfficerAaiFlag(BaseModel):
+    id: str
+    mine_name: str
+    flag_type: str
+    confidence_percent: int
+    detected_at: str
+
+
+class CitizenComplaint(BaseModel):
+    id: str
+    category: str
+    location: str
+    submitted_at: str
+    status: str
+
+
+class OfficerOverviewResponse(BaseModel):
+    assigned_alerts: List[OfficerAssignedAlert]
+    pending_site_visits: List[OfficerSiteVisit]
+    recent_aai_flags: List[OfficerAaiFlag]
+    citizen_complaints: List[CitizenComplaint]
+
+
 # ============ ERROR SCHEMAS ============
 
 class ErrorResponse(BaseModel):

@@ -1,5 +1,5 @@
-import { AuditOfficerDashboard } from "@/components/audit-officer-dashboard"
+import { OfficerOverviewDashboard } from "@/components/officer-overview-dashboard"
 
 export default function OfficerPage() {
-    return <AuditOfficerDashboard />
+    return <OfficerOverviewDashboard />
 }

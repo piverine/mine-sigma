@@ -61,6 +61,11 @@ const reports = [
     },
 ]
 
+const formatReportDate = (isoDate: string) => {
+    const [year, month, day] = isoDate.split("-")
+    return `${day}/${month}/${year}`
+}
+
 const getStatusColor = (status: string) => {
     switch(status) {
         case "Finalized":
@@ -196,7 +201,7 @@ export default function ReportsPage() {
                                     <TableCell>
                                         <div className="flex items-center gap-2 text-sm text-slate-400">
                                             <Calendar className="w-4 h-4" />
-                                            {new Date(report.date).toLocaleDateString()}
+                                            {formatReportDate(report.date)}
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-sm text-slate-400">{report.size}</TableCell>

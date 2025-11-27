@@ -4,17 +4,24 @@ import { useState } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { Button } from "@/components/ui/button"
 import { Menu, X } from "lucide-react"
+import { usePathname } from "next/navigation"
+import { OfficerSidebar } from "@/components/officer-sidebar"
 
 export default function DashboardLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
+    const pathname = usePathname()
     const [sidebarOpen, setSidebarOpen] = useState(true)
 
     return (
         <div className="flex h-screen bg-slate-950">
-            <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+            {pathname?.startsWith("/officer") ? (
+                <OfficerSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+            ) : (
+                <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+            )}
             <main className="flex-1 overflow-auto relative">
                 <Button
                     variant="ghost"

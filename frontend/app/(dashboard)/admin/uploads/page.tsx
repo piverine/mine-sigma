@@ -68,9 +68,9 @@ export default function UploadPage() {
       await new Promise(resolve => setTimeout(resolve, 500));
       setStatus("success");
       
-      // Redirect to the dashboard to see the results
+      // Redirect to the admin map viewer to see the results
       setTimeout(() => {
-        router.push("/officer");
+        router.push("/admin/map-viewer");
       }, 2000);
 
     } catch (error) {
